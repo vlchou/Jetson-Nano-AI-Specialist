@@ -1,22 +1,73 @@
-## CAMERA - Creating USB camera and running it 
+#!/usr/bin/env python
+# coding: utf-8
+
+# <center><img src="../images/DLI Header.png" alt="Header" style="width: 400px;"/></center>
+
+# # Getting Started with AI on Jetson Nano
+# ### Interactive Classification Tool
+
+# This notebook is an interactive data collection, training, and testing tool, provided as part of the NVIDIA Deep Learning Institute (DLI) course, "Getting Started with AI on Jetson Nano". It is designed to be run on the Jetson Nano in conjunction with the detailed instructions provided in the online DLI course pages. 
+# 
+# To start the tool, set the **Camera** and **Task** code cell definitions, then execute all cells.  The interactive tool widgets at the bottom of the notebook will display.  The tool can then be used to gather data, add data, train data, and test data in an iterative and interactive fashion! 
+# 
+# The explanations in this notebook are intentionally minimal to provide a streamlined experience.  Please see the DLI course pages for detailed information on tool operation and project creation.
+
+# ### Camera
+# First, create your camera and set it to `running`.  Uncomment the appropriate camera selection lines, depending on which type of camera you're using (USB or CSI). This cell may take several seconds to execute.
+# 
+# <div style="border:2px solid black; background-color:#e3ffb3; font-size:12px; padding:8px; margin-top: auto;">
+#     <h4><i>Tip</i></h4>
+#     <p>There can only be one instance of CSICamera or USBCamera at a time.  Before starting this notebook, make sure you have executed the final "shutdown" cell in any other notebooks you have run so that the camera is released. 
+#     </p>
+# </div>
+
+# In[1]:
+
+
 # Check device number
-!ls -ltrh /dev/video*
+get_ipython().system('ls -ltrh /dev/video*')
+
+
+# In[2]:
+
 
 from jetcam.usb_camera import USBCamera
+from jetcam.csi_camera import CSICamera
+
+# for USB Camera (Logitech C270 webcam), uncomment the following line
 camera = USBCamera(width=224, height=224, capture_device=0) # confirm the capture_device number
+
+# for CSI Camera (Raspberry Pi Camera Module V2), uncomment the following line
+# camera = CSICamera(width=224, height=224, capture_device=0) # confirm the capture_device number
 
 camera.running = True
 print("camera created")
 
-## TASK - define task, categroies of data, and space for datasets
+
+# ### Task
+# Next, define your project `TASK` and what `CATEGORIES` of data you will collect.  You may optionally define space for multiple `DATASETS` with names of your choosing. 
+
+# Uncomment/edit the associated lines for the classification task you're building and execute the cell.
+# This cell should only take a few seconds to execute.
+
+# In[3]:
+
+
 import torchvision.transforms as transforms
 from dataset import ImageClassificationDataset
 
-TASK = 'recycleable'
+TASK = 'USBtype'
+# TASK = 'emotions'
+# TASK = 'fingers'
+# TASK = 'diy'
 
-CATEGORIES = ['1', '2', '5']
+CATEGORIES = ['A', 'B', 'C'] 
+# CATEGORIES = ['none', 'happy', 'sad', 'angry']
+# CATEGORIES = ['1', '2', '3', '4', '5']
+# CATEGORIES = [ 'diy_1', 'diy_2', 'diy_3']
 
-DATASETS = ['A', 'B']
+DATASETS = ['A']
+# DATASETS = ['A', 'B', 'C']
 
 TRANSFORMS = transforms.Compose([
     transforms.ColorJitter(0.2, 0.2, 0.2, 0.2),
@@ -31,11 +82,21 @@ for name in DATASETS:
     
 print("{} task with {} categories defined".format(TASK, CATEGORIES))
 
+
+# In[4]:
+
+
 # Set up the data directory location if not there already
 DATA_DIR = '/nvdli-nano/data/classification/'
-!mkdir -p {DATA_DIR}
+get_ipython().system('mkdir -p {DATA_DIR}')
 
-## Data Collection - create a data collection tool 
+
+# ### Data Collection
+# Execute the cell below to create the data collection tool widget. This cell should only take a few seconds to execute.
+
+# In[5]:
+
+
 import ipywidgets
 import traitlets
 from IPython.display import display
@@ -85,15 +146,35 @@ data_collection_widget = ipywidgets.VBox([
 # display(data_collection_widget)
 print("data_collection_widget created")
 
-## Model - define network and adjust fc layer to match outputs 
+
+# ### Model
+# Execute the following cell to define the neural network and adjust the fully connected layer (`fc`) to match the outputs required for the project.  This cell may take several seconds to execute.
+
+# In[6]:
+
+
 import torch
 import torchvision
 
 
 device = torch.device('cuda')
+
+# ALEXNET
+# model = torchvision.models.alexnet(pretrained=True)
+# model.classifier[-1] = torch.nn.Linear(4096, len(dataset.categories))
+
+# SQUEEZENET 
+# model = torchvision.models.squeezenet1_1(pretrained=True)
+# model.classifier[1] = torch.nn.Conv2d(512, len(dataset.categories), kernel_size=1)
+# model.num_classes = len(dataset.categories)
+
 # RESNET 18
 model = torchvision.models.resnet18(pretrained=True)
 model.fc = torch.nn.Linear(512, len(dataset.categories))
+
+# RESNET 34
+# model = torchvision.models.resnet34(pretrained=True)
+# model.fc = torch.nn.Linear(512, len(dataset.categories))
     
 model = model.to(device)
 
@@ -117,7 +198,13 @@ model_widget = ipywidgets.VBox([
 # display(model_widget)
 print("model configured and model_widget created")
 
-## Live Execution - set up live execution widget
+
+# ### Live  Execution
+# Execute the cell below to set up the live execution widget.  This cell should only take a few seconds to execute.
+
+# In[7]:
+
+
 import threading
 import time
 from utils import preprocess
@@ -158,7 +245,13 @@ live_execution_widget = ipywidgets.VBox([
 # display(live_execution_widget)
 print("live_execution_widget created")
 
-#training and evaluation
+
+# ### Training and Evaluation
+# Execute the following cell to define the trainer, and the widget to control it. This cell may take several seconds to execute.
+
+# In[8]:
+
+
 BATCH_SIZE = 8
 
 optimizer = torch.optim.Adam(model.parameters())
@@ -251,7 +344,20 @@ train_eval_widget = ipywidgets.VBox([
 # display(train_eval_widget)
 print("trainer configured and train_eval_widget created")
 
-#Display interactive tool
+
+# ### Display the Interactive Tool!
+
+# The interactive tool includes widgets for data collection, training, and testing.
+
+# <center><img src="../images/classification_tool_key2.png" alt="tool key" width=500/></center>
+# <br>
+# <center><img src="../images/classification_tool_key1.png" alt="tool key"/></center>
+
+# Execute the cell below to create and display the full interactive widget.  Follow the instructions in the online DLI course pages to build your project.
+
+# In[9]:
+
+
 # Combine all the widgets into one display
 all_widget = ipywidgets.VBox([
     ipywidgets.HBox([data_collection_widget, live_execution_widget]), 
@@ -261,7 +367,14 @@ all_widget = ipywidgets.VBox([
 
 display(all_widget)
 
-#Exit Code
+
+# <h1 style="background-color:#76b900;"></h1>
+
+# ## Before you go...<br><br>Shut down the camera and/or notebook kernel to release the camera resource
+
+# In[ ]:
+
+
 # Attention!  Execute this cell before moving to another notebook
 # The USB camera application only requires that the notebook be reset
 # The CSI camera application requires that the 'camera' object be specifically released
@@ -274,3 +387,8 @@ if type(camera) is CSICamera:
     camera.cap.release()
 
 os._exit(00)
+
+
+# Return to the DLI course pages for the next instructions.
+
+# <center><img src="../images/DLI Header.png" alt="Header" style="width: 400px;"/></center>
